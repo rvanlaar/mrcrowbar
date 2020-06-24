@@ -1,3 +1,8 @@
+"""
+    Macintosh resource fileformat is described here:
+    https://github.com/kreativekorp/ksfl/wiki/Macintosh-Resource-File-Format
+"""
+
 from mrcrowbar import models as mrc
 
 class MacBinary( mrc.Block ):
@@ -30,19 +35,56 @@ class MacBinary( mrc.Block ):
     resource =      mrc.Bytes( mrc.EndOffset( 'data', align=0x80 ), length=mrc.Ref( 'resource_size' ) )
 
 class ResourceData( mrc.Block ):
-    length = mrc.UInt32_BE( 0x00 )
-    data = mrc.Bytes(offset=0x04, length=mrc.Ref("length"))
-
-class ResourceFork( mrc.Block ):
     """
-    https://github.com/kreativekorp/ksfl/wiki/Macintosh-Resource-File-Format#resource-file-format
+    Read the Resource Data.
+
+    Currently only reads the first element, instead of them all.
+    """
+    length =                mrc.UInt32_BE(0x00)
+    data =                  mrc.Bytes(offset=0x04, length=mrc.Ref("length"))
+
+class ResourceType( mrc.Block):
+    type =                  mrc.UInt32_BE(0x00)
+    resourceCount =         mrc.UInt16_BE(0x04)
+    resourceListOffset =    mrc.UInt16_BE(0x02)
+
+class MapData( mrc.Block ):
+    """
+    Read the Resource Map Data.
+
+    Only the header is implemented.
     """
     resourceDataOffset =    mrc.UInt32_BE(0x00)
     resourceMapOffset =     mrc.UInt32_BE(0x04)
     resourceDataSize =      mrc.UInt32_BE(0x08)
-    resourceMapSize =       mrc.UInt32_BE(0x0b)
+    resourceMapSize =       mrc.UInt32_BE(0x0c)
+
+    nextResourceMap =       mrc.UInt32_BE(0x10)
+    fileRef =               mrc.UInt16_BE(0x14)
+    attributes =            mrc.UInt16_BE(0x16)
+
+    typeListOffset =        mrc.UInt16_BE(0x18)
+    nameListOffset =        mrc.UInt16_BE(0x1a)
+    typeCount =             mrc.UInt16_BE(0x1c)
+
+    def get_count(self):
+        """The type count is off by -1."""
+        return self.typeCount + 1
+
+class ResourceFork( mrc.Block ):
+    """
+    """
+    resourceDataOffset =    mrc.UInt32_BE(0x00)
+    resourceMapOffset =     mrc.UInt32_BE(0x04)
+    resourceDataSize =      mrc.UInt32_BE(0x08)
+    resourceMapSize =       mrc.UInt32_BE(0x0c)
     resourceData =          mrc.BlockField(
                                     ResourceData,
                                     offset=mrc.Ref("resourceDataOffset"),
-                                    length=mrc.Ref("resourceDataSize" ) )
-
+                                    length=mrc.Ref("resourceDataSize" )
+                            )
+    resourceMap =           mrc.BlockField(
+                                    MapData,
+                                    offset=mrc.Ref("resourceMapOffset"),
+                                    length=mrc.Ref("resourceMapSize")
+                            )
