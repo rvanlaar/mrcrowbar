@@ -29,4 +29,20 @@ class MacBinary( mrc.Block ):
     data =          mrc.Bytes( 0x80, length=mrc.Ref( 'data_size' ) )
     resource =      mrc.Bytes( mrc.EndOffset( 'data', align=0x80 ), length=mrc.Ref( 'resource_size' ) )
 
+class ResourceData( mrc.Block ):
+    length = mrc.UInt32_BE( 0x00 )
+    data = mrc.Bytes(offset=0x04, length=mrc.Ref("length"))
+
+class ResourceFork( mrc.Block ):
+    """
+    https://github.com/kreativekorp/ksfl/wiki/Macintosh-Resource-File-Format#resource-file-format
+    """
+    resourceDataOffset =    mrc.UInt32_BE(0x00)
+    resourceMapOffset =     mrc.UInt32_BE(0x04)
+    resourceDataSize =      mrc.UInt32_BE(0x08)
+    resourceMapSize =       mrc.UInt32_BE(0x0b)
+    resourceData =          mrc.BlockField(
+                                    ResourceData,
+                                    offset=mrc.Ref("resourceDataOffset"),
+                                    length=mrc.Ref("resourceDataSize" ) )
 
